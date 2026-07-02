@@ -12,26 +12,28 @@
         .header img { max-width: 140px; margin-bottom: 10px; }
         .header h2 { margin: 0; color: #333; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
         
-        /* Nuevos estilos para el bloque del SGC */
         .doc-control { display: flex; justify-content: center; gap: 15px; margin-top: 12px; font-size: 11px; color: #666; background-color: #f9f9f9; padding: 6px; border-radius: 4px; border: 1px solid #e0e0e0; }
         .doc-control strong { color: #333; }
+
+        /* Estilo para las pestañas (Tabs) */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.3s; background-color: #e2e8f0; color: #64748b; }
+        .tab-btn.active-start { background-color: #dc3545; color: white; box-shadow: 0 4px 10px rgba(220,53,69,0.3); }
+        .tab-btn.active-end { background-color: #28a745; color: white; box-shadow: 0 4px 10px rgba(40,167,69,0.3); }
         
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 12px; color: #555; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; background-color: #fdfdfd; transition: 0.3s; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #e6005a; outline: none; box-shadow: 0 0 5px rgba(230, 0, 90, 0.2); }
         
-        .time-row { display: flex; gap: 10px; }
-        .time-row .form-group { flex: 1; }
-
-        .btn-submit { width: 100%; background-color: #e6005a; color: white; padding: 14px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 10px; transition: 0.3s; }
-        .btn-submit:hover { background-color: #c4004d; }
+        .btn-submit { width: 100%; color: white; padding: 14px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 10px; transition: 0.3s; }
+        .btn-submit.btn-iniciar { background-color: #dc3545; }
+        .btn-submit.btn-finalizar { background-color: #28a745; }
         .btn-submit:disabled { background-color: #ccc; cursor: not-allowed; }
 
         .success-msg { display: none; text-align: center; color: #28a745; background: #e8f5e9; border: 1px solid #c3e6cb; padding: 15px; border-radius: 6px; margin-top: 20px; font-weight: bold; }
         
-        /* Modal de Carga */
-        #loader { display: none; text-align: center; margin-top: 10px; font-size: 14px; color: #666; }
+        #loader { display: none; text-align: center; margin-top: 10px; font-size: 14px; color: #666; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -39,7 +41,7 @@
     <div class="form-container">
         <div class="header">
             <img src="libus_positivo_CMYK.jpg" alt="Libus" onerror="this.src='https://latam.libus.com/imagenes/logo_libus.png'">
-            <h2>Reporte de Falla / Parada</h2>
+            <h2>Reporte de Paradas</h2>
             <div class="doc-control">
                 <span><strong>Cód:</strong> LCRg-PAR</span>
                 <span><strong>Rev:</strong> 01</span>
@@ -47,10 +49,15 @@
             </div>
         </div>
 
+        <div class="tabs">
+            <button type="button" id="tabIniciar" class="tab-btn active-start" onclick="setMode('INICIAR')">🔴 DETENER MÁQ.</button>
+            <button type="button" id="tabFinalizar" class="tab-btn" onclick="setMode('FINALIZAR')">🟢 ARRANCAR MÁQ.</button>
+        </div>
+
         <form id="paradaForm">
             
-            <div class="form-group">
-                <label>Fecha de la Parada</label>
+            <div class="form-group" id="divFecha">
+                <label>Fecha del Evento</label>
                 <input type="date" id="fecha" required>
             </div>
 
@@ -68,9 +75,9 @@
                 </select>
             </div>
 
-            <div class="form-group">
-                <label>Motivo Principal</label>
-                <select id="motivo" required>
+            <div class="form-group" id="divMotivo">
+                <label>Motivo de la Parada</label>
+                <select id="motivo">
                     <option value="" disabled selected>Seleccione el motivo...</option>
                     <option value="Cambio de Molde">Cambio de Molde</option>
                     <option value="Cambio de Master">Cambio de Master</option>
@@ -85,72 +92,99 @@
                 </select>
             </div>
 
-            <div class="time-row">
-                <div class="form-group">
-                    <label>Hora Inicio</label>
-                    <input type="time" id="inicio" required>
-                </div>
-                <div class="form-group">
-                    <label>Hora Fin</label>
-                    <input type="time" id="fin" required>
-                </div>
+            <div class="form-group">
+                <label id="lblHora">Hora de Detención (Inicio)</label>
+                <input type="time" id="hora" required>
             </div>
 
             <div class="form-group">
                 <label>Observaciones (Opcional)</label>
-                <textarea id="obs" rows="3" placeholder="Detalles adicionales sobre la falla..."></textarea>
+                <textarea id="obs" rows="2" placeholder="Detalles sobre el evento..."></textarea>
             </div>
 
-            <button type="submit" id="btnSubmit" class="btn-submit">Registrar Parada</button>
-            <div id="loader">Enviando a la base de datos... ⏳</div>
+            <button type="submit" id="btnSubmit" class="btn-submit btn-iniciar">Confirmar Detención</button>
+            <div id="loader">Conectando con la base de datos... ⏳</div>
         </form>
 
         <div id="successMsg" class="success-msg">
-            ✅ ¡Parada registrada exitosamente!<br><br>
-            <button onclick="resetForm()" style="background:#28a745; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">Registrar otra</button>
+            <span id="msgText">✅ ¡Evento registrado exitosamente!</span><br><br>
+            <button onclick="resetForm()" style="background:#343a40; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">Volver</button>
         </div>
     </div>
 
     <script>
-        // Rellenar la fecha de hoy automáticamente
         document.getElementById('fecha').valueAsDate = new Date();
+        let modoActual = 'INICIAR';
+
+        function setMode(modo) {
+            modoActual = modo;
+            const tabIniciar = document.getElementById('tabIniciar');
+            const tabFinalizar = document.getElementById('tabFinalizar');
+            const divMotivo = document.getElementById('divMotivo');
+            const motivoInput = document.getElementById('motivo');
+            const lblHora = document.getElementById('lblHora');
+            const btnSubmit = document.getElementById('btnSubmit');
+
+            if (modo === 'INICIAR') {
+                tabIniciar.className = 'tab-btn active-start';
+                tabFinalizar.className = 'tab-btn';
+                divMotivo.style.display = 'block';
+                motivoInput.required = true;
+                lblHora.innerText = 'Hora de Detención (Inicio Parada)';
+                btnSubmit.className = 'btn-submit btn-iniciar';
+                btnSubmit.innerText = 'Confirmar Detención';
+            } else {
+                tabIniciar.className = 'tab-btn';
+                tabFinalizar.className = 'tab-btn active-end';
+                divMotivo.style.display = 'none';
+                motivoInput.required = false;
+                motivoInput.value = "";
+                lblHora.innerText = 'Hora de Arranque (Fin Parada)';
+                btnSubmit.className = 'btn-submit btn-finalizar';
+                btnSubmit.innerText = 'Confirmar Arranque';
+            }
+        }
 
         document.getElementById('paradaForm').addEventListener('submit', function(e) {
-            e.preventDefault(); // Evita que la página recargue
+            e.preventDefault();
             
-            // Bloquear botón para evitar doble envío
             const btn = document.getElementById('btnSubmit');
             const loader = document.getElementById('loader');
             btn.disabled = true;
             loader.style.display = 'block';
 
-            // Recopilar datos
             const payload = {
+                accion: modoActual,
                 fecha: document.getElementById('fecha').value,
                 maquina: document.getElementById('maquina').value,
-                motivo: document.getElementById('motivo').value,
-                inicio: document.getElementById('inicio').value,
-                fin: document.getElementById('fin').value,
+                motivo: document.getElementById('motivo').value || "No aplica",
+                hora: document.getElementById('hora').value,
                 obs: document.getElementById('obs').value || "Sin observaciones"
             };
 
-            // !!!!!!!! ATENCIÓN: PEGA TU URL AQUÍ ABAJO !!!!!!!!
-            const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-a-ucPKaThqtiIgOaSOppPXCe05nBOrxNn88YfqYnM2dG22CBcugIIM7NoEDN7qLjOg/exec";
+            // !!!!!!!! ATENCIÓN: PEGA TU URL DE APPS SCRIPT AQUÍ !!!!!!!!
+            const APPS_SCRIPT_URL = "PEGAR_AQUI_TU_URL_DE_APPS_SCRIPT";
 
-            // Enviar datos al Google Sheet ocultamente
+            // Petición con CORS normal para poder leer la respuesta del servidor
             fetch(APPS_SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify(payload),
-                mode: 'no-cors' // Esto evita bloqueos de seguridad del navegador
+                body: JSON.stringify(payload)
             })
-            .then(() => {
-                document.getElementById('paradaForm').style.display = 'none';
-                document.getElementById('successMsg').style.display = 'block';
+            .then(response => response.json())
+            .then(result => {
                 loader.style.display = 'none';
                 btn.disabled = false;
+                
+                if(result.status === 'success') {
+                    document.getElementById('paradaForm').style.display = 'none';
+                    document.getElementById('successMsg').style.display = 'block';
+                    document.getElementById('msgText').innerText = result.message;
+                } else {
+                    alert(result.message); // Muestra error si ya hay una abierta o si no encuentra la parada
+                }
             })
             .catch(error => {
-                alert("Hubo un error al enviar. Verifica tu conexión a internet.");
+                alert("Hubo un error de conexión. Verifica tu internet.");
                 loader.style.display = 'none';
                 btn.disabled = false;
             });
@@ -161,6 +195,7 @@
             document.getElementById('fecha').valueAsDate = new Date();
             document.getElementById('successMsg').style.display = 'none';
             document.getElementById('paradaForm').style.display = 'block';
+            setMode('INICIAR');
         }
     </script>
 </body>
