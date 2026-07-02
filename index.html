@@ -153,31 +153,24 @@
             btn.disabled = true;
             loader.style.display = 'block';
 
-            const payload = {
+            // !!!!!!!! ATENCIÓN: PEGA AQUÍ TU NUEVO LINK DE GOOGLE APPS SCRIPT !!!!!!!!
+            const APPS_SCRIPT_URL = "https://script.google.com/macros/library/d/1w2KqDVffL7sGkGW0k4dJfO89ktfl786U8Q-gRIs5-DVvEigmpsLHw_Gb/4";
+
+            // Armamos los datos en formato de enlace (GET) antibloqueos corporativos
+            const parametros = new URLSearchParams({
                 accion: modoActual,
                 fecha: document.getElementById('fecha').value,
                 maquina: document.getElementById('maquina').value,
                 motivo: document.getElementById('motivo').value || "No aplica",
                 hora: document.getElementById('hora').value,
                 obs: document.getElementById('obs').value || "Sin observaciones"
-            };
+            });
 
-            // Tu URL exacta de Google Apps Script
-            const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFPIHaloD7ddlk6Qh1gcIfZC4UtTM3qhSb0dLZYvEJvE5Ci8MTY4IPEntwJgy559w99A/exec";
+            const urlFinal = APPS_SCRIPT_URL + "?" + parametros.toString();
 
-            // Petición reforzada antibloqueos (CORS) para GitHub
-            fetch(APPS_SCRIPT_URL, {
-                redirect: "follow",
-                method: 'POST',
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8"
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(response => {
-                if (!response.ok) throw new Error("Error de red al conectar con Google");
-                return response.json();
-            })
+            // Petición limpia (GET) que salta la seguridad y permite leer la respuesta
+            fetch(urlFinal)
+            .then(response => response.json())
             .then(result => {
                 loader.style.display = 'none';
                 btn.disabled = false;
@@ -187,12 +180,12 @@
                     document.getElementById('successMsg').style.display = 'block';
                     document.getElementById('msgText').innerText = result.message;
                 } else {
-                    alert(result.message); // Muestra error si la máquina ya estaba detenida o no se encuentra la parada
+                    alert(result.message); // Esto avisa si hay error (ej: Máquina ya parada)
                 }
             })
             .catch(error => {
-                console.error("Detalle del error:", error);
-                alert("Hubo un error de conexión con la base de datos de Google. Verifica tu internet y los permisos del script.");
+                console.error("Error:", error);
+                alert("Hubo un error de conexión. Verifica tu internet.");
                 loader.style.display = 'none';
                 btn.disabled = false;
             });
