@@ -162,15 +162,22 @@
                 obs: document.getElementById('obs').value || "Sin observaciones"
             };
 
-            // !!!!!!!! ATENCIÓN: PEGA TU URL DE APPS SCRIPT AQUÍ !!!!!!!!
+            // Tu URL exacta de Google Apps Script
             const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-a-ucPKaThqtiIgOaSOppPXCe05nBOrxNn88YfqYnM2dG22CBcugIIM7NoEDN7qLjOg/exec";
 
-            // Petición con CORS normal para poder leer la respuesta del servidor
+            // Petición reforzada antibloqueos (CORS) para GitHub
             fetch(APPS_SCRIPT_URL, {
+                redirect: "follow",
                 method: 'POST',
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8"
+                },
                 body: JSON.stringify(payload)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error("Error de red al conectar con Google");
+                return response.json();
+            })
             .then(result => {
                 loader.style.display = 'none';
                 btn.disabled = false;
@@ -180,11 +187,12 @@
                     document.getElementById('successMsg').style.display = 'block';
                     document.getElementById('msgText').innerText = result.message;
                 } else {
-                    alert(result.message); // Muestra error si ya hay una abierta o si no encuentra la parada
+                    alert(result.message); // Muestra error si la máquina ya estaba detenida o no se encuentra la parada
                 }
             })
             .catch(error => {
-                alert("Hubo un error de conexión. Verifica tu internet.");
+                console.error("Detalle del error:", error);
+                alert("Hubo un error de conexión con la base de datos de Google. Verifica tu internet y los permisos del script.");
                 loader.style.display = 'none';
                 btn.disabled = false;
             });
