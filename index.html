@@ -153,42 +153,53 @@
             btn.disabled = true;
             loader.style.display = 'block';
 
-            // !!!!!!!! ATENCIÓN: PEGA AQUÍ TU NUEVO LINK DE GOOGLE APPS SCRIPT !!!!!!!!
+            // !!!!!!!! PEGA TU LINK DE GOOGLE APPS SCRIPT AQUÍ !!!!!!!!
             const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFPIHaloD7ddlk6Qh1gcIfZC4UtTM3qhSb0dLZYvEJvE5Ci8MTY4IPEntwJgy559w99A/exec";
 
-            // Armamos los datos en formato de enlace (GET) antibloqueos corporativos
+            // Creamos una firma única para que Google nos responda directamente (JSONP)
+            const callbackName = 'jsonpCallback_' + Math.round(100000 * Math.random());
+            
             const parametros = new URLSearchParams({
                 accion: modoActual,
                 fecha: document.getElementById('fecha').value,
                 maquina: document.getElementById('maquina').value,
                 motivo: document.getElementById('motivo').value || "No aplica",
                 hora: document.getElementById('hora').value,
-                obs: document.getElementById('obs').value || "Sin observaciones"
+                obs: document.getElementById('obs').value || "Sin observaciones",
+                callback: callbackName // Le decimos a Google cómo debe respondernos
             });
 
-            const urlFinal = APPS_SCRIPT_URL + "?" + parametros.toString();
-
-            // Petición limpia (GET) que salta la seguridad y permite leer la respuesta
-            fetch(urlFinal)
-            .then(response => response.json())
-            .then(result => {
+            // Función que se ejecutará mágicamente cuando Google responda
+            window[callbackName] = function(result) {
                 loader.style.display = 'none';
                 btn.disabled = false;
                 
+                // Limpiamos la memoria
+                delete window[callbackName];
+                const scriptElement = document.getElementById(callbackName);
+                if (scriptElement) scriptElement.remove();
+
                 if(result.status === 'success') {
                     document.getElementById('paradaForm').style.display = 'none';
                     document.getElementById('successMsg').style.display = 'block';
                     document.getElementById('msgText').innerText = result.message;
                 } else {
-                    alert(result.message); // Esto avisa si hay error (ej: Máquina ya parada)
+                    alert(result.message); // Avisa si la máquina ya estaba parada
                 }
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                alert("Hubo un error de conexión. Verifica tu internet.");
+            };
+
+            // Inyectamos el envío en el navegador (Esto salta cualquier bloqueo CORS corporativo)
+            const script = document.createElement('script');
+            script.id = callbackName;
+            script.src = APPS_SCRIPT_URL + "?" + parametros.toString();
+            
+            script.onerror = function() {
                 loader.style.display = 'none';
                 btn.disabled = false;
-            });
+                alert("Error de red. Verifica tu conexión a internet o los permisos de Apps Script.");
+            };
+
+            document.body.appendChild(script);
         });
 
         function resetForm() {
