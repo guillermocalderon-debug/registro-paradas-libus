@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Paradas - Libus</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .form-container { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); box-sizing: border-box; }
+        
+        .header { text-align: center; border-bottom: 2px solid #e6005a; padding-bottom: 15px; margin-bottom: 20px; }
+        .header img { max-width: 140px; margin-bottom: 10px; }
+        .header h2 { margin: 0; color: #333; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 12px; color: #555; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; background-color: #fdfdfd; transition: 0.3s; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #e6005a; outline: none; box-shadow: 0 0 5px rgba(230, 0, 90, 0.2); }
+        
+        .time-row { display: flex; gap: 10px; }
+        .time-row .form-group { flex: 1; }
+
+        .btn-submit { width: 100%; background-color: #e6005a; color: white; padding: 14px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 10px; transition: 0.3s; }
+        .btn-submit:hover { background-color: #c4004d; }
+        .btn-submit:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .success-msg { display: none; text-align: center; color: #28a745; background: #e8f5e9; border: 1px solid #c3e6cb; padding: 15px; border-radius: 6px; margin-top: 20px; font-weight: bold; }
+        
+        /* Modal de Carga */
+        #loader { display: none; text-align: center; margin-top: 10px; font-size: 14px; color: #666; }
+    </style>
+</head>
+<body>
+
+    <div class="form-container">
+        <div class="header">
+            <img src="libus_positivo_CMYK.jpg" alt="Libus" onerror="this.src='https://latam.libus.com/imagenes/logo_libus.png'">
+            <h2>Reporte de Falla / Parada</h2>
+        </div>
+
+        <form id="paradaForm">
+            
+            <div class="form-group">
+                <label>Fecha de la Parada</label>
+                <input type="date" id="fecha" required>
+            </div>
+
+            <div class="form-group">
+                <label>Máquina Inyectora</label>
+                <select id="maquina" required>
+                    <option value="" disabled selected>Seleccione la máquina...</option>
+                    <option value="Inyectora 1">Inyectora 1</option>
+                    <option value="Inyectora 2">Inyectora 2</option>
+                    <option value="Inyectora 3">Inyectora 3</option>
+                    <option value="Inyectora 4">Inyectora 4</option>
+                    <option value="Inyectora 5">Inyectora 5</option>
+                    <option value="Inyectora 6">Inyectora 6</option>
+                    <option value="Inyectora 7">Inyectora 7</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Motivo Principal</label>
+                <select id="motivo" required>
+                    <option value="" disabled selected>Seleccione el motivo...</option>
+                    <option value="Cambio de Molde">Cambio de Molde</option>
+                    <option value="Cambio de Master">Cambio de Master</option>
+                    <option value="Falta de MP">Falta de Materia Prima</option>
+                    <option value="Falta de Personal">Falta de Personal</option>
+                    <option value="Problemas de Calidad">Problemas de Calidad</option>
+                    <option value="Prob. Maq o Perif">Prob. Máquina o Periférico</option>
+                    <option value="Prob. en el Molde">Problemas en el Molde</option>
+                    <option value="Mantenimiento Correctivo">Mantenimiento Correctivo</option>
+                    <option value="Mant. Preventivo / Lubricación">Mant. Preventivo / Lubricación</option>
+                    <option value="Parada Programada">Parada Programada</option>
+                </select>
+            </div>
+
+            <div class="time-row">
+                <div class="form-group">
+                    <label>Hora Inicio</label>
+                    <input type="time" id="inicio" required>
+                </div>
+                <div class="form-group">
+                    <label>Hora Fin</label>
+                    <input type="time" id="fin" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Observaciones (Opcional)</label>
+                <textarea id="obs" rows="3" placeholder="Detalles adicionales sobre la falla..."></textarea>
+            </div>
+
+            <button type="submit" id="btnSubmit" class="btn-submit">Registrar Parada</button>
+            <div id="loader">Enviando a la base de datos... ⏳</div>
+        </form>
+
+        <div id="successMsg" class="success-msg">
+            ✅ ¡Parada registrada exitosamente!<br><br>
+            <button onclick="resetForm()" style="background:#28a745; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">Registrar otra</button>
+        </div>
+    </div>
+
+    <script>
+        // Rellenar la fecha de hoy automáticamente
+        document.getElementById('fecha').valueAsDate = new Date();
+
+        document.getElementById('paradaForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Evita que la página recargue
+            
+            // Bloquear botón para evitar doble envío
+            const btn = document.getElementById('btnSubmit');
+            const loader = document.getElementById('loader');
+            btn.disabled = true;
+            loader.style.display = 'block';
+
+            // Recopilar datos
+            const payload = {
+                fecha: document.getElementById('fecha').value,
+                maquina: document.getElementById('maquina').value,
+                motivo: document.getElementById('motivo').value,
+                inicio: document.getElementById('inicio').value,
+                fin: document.getElementById('fin').value,
+                obs: document.getElementById('obs').value || "Sin observaciones"
+            };
+
+            // !!!!!!!! ATENCIÓN: PEGA TU URL AQUÍ ABAJO !!!!!!!!
+            const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-a-ucPKaThqtiIgOaSOppPXCe05nBOrxNn88YfqYnM2dG22CBcugIIM7NoEDN7qLjOg/exec";
+
+            // Enviar datos al Google Sheet ocultamente
+            fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                mode: 'no-cors' // Esto evita bloqueos de seguridad del navegador
+            })
+            .then(() => {
+                document.getElementById('paradaForm').style.display = 'none';
+                document.getElementById('successMsg').style.display = 'block';
+                loader.style.display = 'none';
+                btn.disabled = false;
+            })
+            .catch(error => {
+                alert("Hubo un error al enviar. Verifica tu conexión a internet.");
+                loader.style.display = 'none';
+                btn.disabled = false;
+            });
+        });
+
+        function resetForm() {
+            document.getElementById('paradaForm').reset();
+            document.getElementById('fecha').valueAsDate = new Date();
+            document.getElementById('successMsg').style.display = 'none';
+            document.getElementById('paradaForm').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
